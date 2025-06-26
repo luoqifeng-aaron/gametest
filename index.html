@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单词对对碰</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            background-image: linear-gradient(120deg, #fdfbfb 0%, #ebedee 100%);
+        }
+        .title-text {
+            color: #6a11cb;
+            margin-bottom: 25px;
+            font-size: 2rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            padding: 10px 0;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        .word-box, .meaning-box {
+            width: 600px;
+            height: 600px;
+            border: 3px solid white;
+            border-radius: 15px;
+            overflow-y: auto;
+            padding: 15px;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            background: linear-gradient(to bottom, #e0eafc, #cfdef3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        .word-box:hover, .meaning-box:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+        .word-item, .meaning-item {
+            padding: 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 25px;
+            word-break: break-word;
+        }
+        .word-item {
+            background-color: #ffd6e7; /* 浅粉色 */
+            color: #d23669;
+            border-left: 5px solid #ff9ff3;
+        }
+        .meaning-item {
+            background-color: #d0e3ff; /* 浅蓝色 */
+            color: #1e6fbf;
+            border-left: 5px solid #74b9ff;
+        }
+        .word-item::before, .meaning-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        .word-item:hover::before, .meaning-item:hover::before {
+            transform: translateX(0);
+        }
+        .selected {
+            background-color: #c8f7c5 !important; /* 浅绿色 */
+            color: #27ae60;
+            border-left: 5px solid #2ecc71;
+            transform: scale(1.02);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .selected::after {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #27ae60;
+            font-weight: bold;
+        }
+        .shake {
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 16px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        button:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .score-board {
+            font-size: 20px;
+            margin: 25px;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+        }
+        #timer, #score {
+            padding: 10px 20px;
+            border-radius: 30px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            min-width: 150px;
+            display: inline-block;
+        }
+        #timer {
+            color: #e74c3c;
+            border: 2px solid #e74c3c;
+        }
+        #score {
+            color: #3498db;
+            border: 2px solid #3498db;
+        }
+        .hidden {
+            display: none;
+        }
+        #fileInput {
+            display: none;
+        }
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: #D9FFD9;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 500px;
+            width: 80%;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            animation: modalFadeIn 0.4s;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .matched {
+            animation: matchFadeOut 0.5s forwards;
+        }
+        @keyframes matchFadeOut {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.1); }
+            100% { opacity: 0; transform: scale(0.9); }
+        }
+        /* 自定义滚动条 */
+        .word-box::-webkit-scrollbar, .meaning-box::-webkit-scrollbar {
+            width: 8px;
+        }
+        .word-box::-webkit-scrollbar-track, .meaning-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .word-box::-webkit-scrollbar-thumb, .meaning-box::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 10px;
+        }
+        .word-box::-webkit-scrollbar-thumb:hover, .meaning-box::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+        /* 发音按钮样式 */
+        .speak-btn {
+            background: none;
+            border: none;
+            color: #6a11cb;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 5px;
+            padding: 2px 5px;
+            border-radius: 50%;
+            transition: all 0.2s;
+        }
+        .speak-btn:hover {
+            background-color: rgba(106, 17, 203, 0.1);
+            transform: scale(1.1);
+        }
+        .word-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        /* 计时选择下拉菜单样式 */
+        .time-selector {
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 30px;
+            border: 2px solid #6a11cb;
+            background-color: white;
+            color: #6a11cb;
+            margin: 10px;
+            cursor: pointer;
+            outline: none;
+        }
+        .time-selector:hover {
+            background-color: #f5f5f5;
+        }
+        /* 导入单词的模态框样式 */
+        #importModal {
+            display: none;
+        }
+        .import-area {
+            width: 90%;
+            min-height: 200px;
+            margin: 15px 0;
+            padding: 10px;
+           border: 3px solid white;
+            border-radius: 10px;
+            font-family: Arial, sans-serif;
+            resize: vertical;
+background: linear-gradient(to bottom, #e0eafc, #cfdef3);
+        }
+        .import-area:focus {
+            outline: none;
+            border-color: #2575fc;
+        }
+        .example-text {
+            font-size: 14px;
+            color: #666;
+            margin-top: 10px;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <h1>🏅️🌟<span class="title-text">单词对对碰</span>🌟🏅️</h1>
+    <div>
+        <button id="startBtn">🎮开始游戏</button>
+        <button id="importBtn">📝导入单词</button>
+        <select id="timeSelect" class="time-selector">
+            <option value="60">1分钟</option>
+            <option value="120" selected>2分钟</option>
+            <option value="180">3分钟</option>
+        </select>
+    </div>
+    <div class="score-board">
+        <span id="timer">时间: 120秒</span>
+        <span id="score">得分: 0</span>
+    </div>
+    <div class="container">
+        <div class="word-box" id="wordBox"></div>
+        <div class="meaning-box" id="meaningBox"></div>
+    </div>
+
+    <div id="gameOverModal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: #e74c3c; margin-top: 0;">游戏结束</h2>
+            <p id="finalScore" style="font-size: 24px; color: #3498db;">你的得分: 0</p>
+            <button id="restartBtn" style="background-color: #3498db;">再玩一次</button>
+        </div>
+    </div>
+
+    <!-- 新增的导入单词模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <h2 style="color: #6a11cb; margin-top: 0;">导入单词</h2>
+            <p>请在下方输入单词和中文释义，每行一个单词，格式为：单词,释义</p>
+            <textarea id="wordInput" class="import-area" placeholder="例如：
+apple,苹果
+banana,香蕉
+orange,橙子"></textarea>
+            
+            <div style="margin-top: 20px;">
+                <button id="confirmImportBtn" style="background-color: #6a11cb;">确认导入</button>
+                <button id="cancelImportBtn" style="background-color: #ccc; margin-left: 10px;">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 游戏变量
+        let words = [];
+        let meanings = [];
+        let wordElements = [];
+        let meaningElements = [];
+        let selectedWord = null;
+        let selectedMeaning = null;
+        let score = 0;
+        let timeLeft = 120;
+        let timer = null;
+        let gameActive = false;
+        let wordMeaningPairs = {};
+        let useGoogleTTS = false; // 是否使用Google TTS作为备用方案
+
+        // DOM元素
+        const wordBox = document.getElementById('wordBox');
+        const meaningBox = document.getElementById('meaningBox');
+        const startBtn = document.getElementById('startBtn');
+        const importBtn = document.getElementById('importBtn');
+        const timerDisplay = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score');
+        const gameOverModal = document.getElementById('gameOverModal');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const restartBtn = document.getElementById('restartBtn');
+        const timeSelect = document.getElementById('timeSelect');
+        const importModal = document.getElementById('importModal');
+        const wordInput = document.getElementById('wordInput');
+        const confirmImportBtn = document.getElementById('confirmImportBtn');
+        const cancelImportBtn = document.getElementById('cancelImportBtn');
+
+        // 初始化游戏
+        function initGame() {
+            // 从下拉菜单获取选择的计时时间
+            timeLeft = parseInt(timeSelect.value);
+            
+            // 清空游戏区域
+            wordBox.innerHTML = '';
+            meaningBox.innerHTML = '';
+            
+            // 重置游戏状态
+            wordElements = [];
+            meaningElements = [];
+            selectedWord = null;
+            selectedMeaning = null;
+            score = 0;
+            gameActive = false;
+            
+            // 更新显示
+            scoreDisplay.textContent = '得分: 0';
+            timerDisplay.textContent = `时间: ${timeLeft}秒`;
+            timerDisplay.style.color = '';
+            timerDisplay.style.fontWeight = '';
+            
+            // 停止计时器
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+            
+            // 隐藏游戏结束弹窗
+            gameOverModal.style.display = 'none';
+            
+            // 启用导入按钮，禁用开始按钮
+            importBtn.disabled = false;
+            startBtn.disabled = true;
+            
+            // 检查语音合成API是否可用
+            checkSpeechSupport();
+        }
+
+        // 检查语音合成支持
+        function checkSpeechSupport() {
+            if (!('speechSynthesis' in window)) {
+                console.log('Web Speech API not supported, using Google TTS fallback');
+                useGoogleTTS = true;
+                return;
+            }
+            
+            // 测试语音合成是否真的可用（Windows 7上可能存在问题）
+            try {
+                const testUtterance = new SpeechSynthesisUtterance('test');
+                testUtterance.volume = 0; // 静音测试
+                speechSynthesis.speak(testUtterance);
+                useGoogleTTS = false;
+            } catch (e) {
+                console.log('Web Speech API not working properly, using Google TTS fallback');
+                useGoogleTTS = true;
+            }
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (words.length === 0) {
+                alert('请先导入单词！');
+                return;
+            }
+            
+            initGame();
+            gameActive = true;
+            
+            // 创建单词和意思元素
+            createWordElements();
+            
+            // 开始计时
+            timer = setInterval(updateTimer, 1000);
+            
+            // 禁用开始按钮和导入按钮
+            startBtn.disabled = true;
+            importBtn.disabled = true;
+        }
+
+        // 创建单词和意思元素
+        function createWordElements() {
+            // 随机排序单词和意思
+            const shuffledWords = [...words].sort(() => Math.random() - 0.5);
+            const shuffledMeanings = [...meanings].sort(() => Math.random() - 0.5);
+            
+            // 清空容器
+            wordBox.innerHTML = '';
+            meaningBox.innerHTML = '';
+            
+            // 创建单词元素
+            shuffledWords.forEach((word, index) => {
+                const wordElement = document.createElement('div');
+                wordElement.className = 'word-item';
+                
+                // 创建包含单词和发音按钮的内容
+                const wordContent = document.createElement('div');
+                wordContent.className = 'word-content';
+                
+                const wordText = document.createElement('span');
+                wordText.textContent = word;
+                
+                const speakBtn = document.createElement('button');
+                speakBtn.className = 'speak-btn';
+                speakBtn.innerHTML = '🔊';
+                speakBtn.title = '发音';
+                speakBtn.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡，避免触发单词选择
+                    speakWord(word);
+                });
+                
+                wordContent.appendChild(wordText);
+                wordContent.appendChild(speakBtn);
+                wordElement.appendChild(wordContent);
+                
+                wordElement.dataset.word = word;
+                wordElement.addEventListener('click', () => selectWord(wordElement));
+                wordBox.appendChild(wordElement);
+                wordElements.push(wordElement);
+            });
+            
+            // 创建意思元素
+            shuffledMeanings.forEach((meaning, index) => {
+                const meaningElement = document.createElement('div');
+                meaningElement.className = 'meaning-item';
+                meaningElement.textContent = meaning;
+                meaningElement.dataset.meaning = meaning;
+                meaningElement.addEventListener('click', () => selectMeaning(meaningElement));
+                meaningBox.appendChild(meaningElement);
+                meaningElements.push(meaningElement);
+            });
+        }
+
+        // 选择单词
+        function selectWord(element) {
+            if (!gameActive) return;
+            
+            // 如果已经选中了这个单词，取消选择
+            if (selectedWord === element) {
+                element.classList.remove('selected');
+                element.classList.add('word-item');
+                selectedWord = null;
+                return;
+            }
+            
+            // 如果已经选中了其他单词，取消选择之前的
+            if (selectedWord) {
+                selectedWord.classList.remove('selected');
+                selectedWord.classList.add('word-item');
+            }
+            
+            // 选中当前单词
+            selectedWord = element;
+            element.classList.remove('word-item');
+            element.classList.add('selected');
+            
+            // 如果已经选中了一个意思，检查是否匹配
+            if (selectedMeaning) {
+                checkMatch();
+            }
+        }
+
+        // 选择意思
+        function selectMeaning(element) {
+            if (!gameActive) return;
+            
+            // 如果已经选中了这个意思，取消选择
+            if (selectedMeaning === element) {
+                element.classList.remove('selected');
+                element.classList.add('meaning-item');
+                selectedMeaning = null;
+                return;
+            }
+            
+            // 如果已经选中了其他意思，取消选择之前的
+            if (selectedMeaning) {
+                selectedMeaning.classList.remove('selected');
+                selectedMeaning.classList.add('meaning-item');
+            }
+            
+            // 选中当前意思
+            selectedMeaning = element;
+            element.classList.remove('meaning-item');
+            element.classList.add('selected');
+            
+            // 如果已经选中了一个单词，检查是否匹配
+            if (selectedWord) {
+                checkMatch();
+            }
+        }
+
+        // 检查单词和意思是否匹配
+        function checkMatch() {
+            const word = selectedWord.dataset.word;
+            const meaning = selectedMeaning.dataset.meaning;
+            
+            if (wordMeaningPairs[word] === meaning) {
+                // 匹配成功
+                selectedWord.classList.add('matched');
+                selectedMeaning.classList.add('matched');
+                
+                // 播放单词发音
+                speakWord(word);
+                
+                // 增加分数
+                score += 10;
+                scoreDisplay.textContent = `得分: ${score}`;
+                
+                // 短暂延迟后移除元素
+                setTimeout(() => {
+                    selectedWord.remove();
+                    selectedMeaning.remove();
+                    
+                    // 从数组中移除
+                    wordElements = wordElements.filter(el => el !== selectedWord);
+                    meaningElements = meaningElements.filter(el => el !== selectedMeaning);
+                    
+                    // 重置选择
+                    selectedWord = null;
+                    selectedMeaning = null;
+                    
+                    // 检查游戏是否结束
+                    checkGameEnd();
+                }, 500);
+            } else {
+                // 匹配失败
+                selectedWord.classList.add('shake');
+                selectedMeaning.classList.add('shake');
+                
+                setTimeout(() => {
+                    selectedWord.classList.remove('shake');
+                    selectedMeaning.classList.remove('shake');
+                    
+                    // 恢复原始颜色
+                    selectedWord.classList.remove('selected');
+                    selectedWord.classList.add('word-item');
+                    selectedMeaning.classList.remove('selected');
+                    selectedMeaning.classList.add('meaning-item');
+                    
+                    // 重置选择
+                    selectedWord = null;
+                    selectedMeaning = null;
+                }, 500);
+            }
+        }
+
+        // 播放单词发音
+        function speakWord(word) {
+            if (useGoogleTTS) {
+                // 使用Google TTS作为备用方案
+                const audio = new Audio();
+                audio.src = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=${encodeURIComponent(word)}`;
+                audio.play().catch(e => console.error('Error playing audio:', e));
+            } else {
+                // 使用Web Speech API
+                try {
+                    if ('speechSynthesis' in window) {
+                        const utterance = new SpeechSynthesisUtterance(word);
+                        utterance.lang = 'en-US';
+                        utterance.rate = 0.9;
+                        
+                        // 在Windows 7上，可能需要设置语音引擎
+                        const voices = speechSynthesis.getVoices();
+                        if (voices.length > 0) {
+                            const englishVoice = voices.find(voice => 
+                                voice.lang.includes('en') || voice.lang.includes('US')
+                            );
+                            if (englishVoice) {
+                                utterance.voice = englishVoice;
+                            }
+                        }
+                        
+                        speechSynthesis.speak(utterance);
+                    }
+                } catch (e) {
+                    console.error('Error using Web Speech API:', e);
+                    // 如果Web Speech API失败，回退到Google TTS
+                    useGoogleTTS = true;
+                    speakWord(word); // 重试
+                }
+            }
+        }
+
+        // 检查游戏是否结束
+        function checkGameEnd() {
+            // 检查所有单词是否已匹配
+            const allWordsMatched = wordElements.length === 0;
+            const allMeaningsMatched = meaningElements.length === 0;
+            
+            if (allWordsMatched && allMeaningsMatched) {
+                endGame(true);
+                return;
+            }
+            
+            // 检查时间是否用完
+            if (timeLeft <= 0) {
+                endGame(false);
+            }
+        }
+
+        // 更新计时器
+        function updateTimer() {
+            timeLeft--;
+            timerDisplay.textContent = `时间: ${timeLeft}秒`;
+            
+            if (timeLeft <= 10) {
+                timerDisplay.style.color = '#e74c3c';
+                timerDisplay.style.fontWeight = 'bold';
+            }
+            
+            if (timeLeft <= 0) {
+                endGame(false);
+            }
+        }
+
+        // 结束游戏
+        function endGame(isComplete) {
+            gameActive = false;
+            clearInterval(timer);
+            
+            finalScoreDisplay.textContent = `你的得分: ${score}`;
+            gameOverModal.style.display = 'flex';
+            
+            // 启用开始按钮和导入按钮
+            startBtn.disabled = false;
+            importBtn.disabled = false;
+            
+            restartBtn.addEventListener("click", event => {
+                setTimeout(function(){
+                    location.reload();
+                }, 1000);
+            });
+            
+            // 如果是全部匹配完成，显示祝贺信息
+            if (isComplete) {
+                document.querySelector('.modal-content h2').textContent = '恭喜完成！';
+            } else {
+                document.querySelector('.modal-content h2').textContent = '游戏结束';
+            }
+        }
+
+        // 处理文本内容
+        function processTextContent(content) {
+            // 分割行
+            const lines = content.split('\n').filter(line => line.trim() !== '');
+            
+            // 清空现有数据
+            words = [];
+            meanings = [];
+            wordMeaningPairs = {};
+            
+            // 处理每一行
+            lines.forEach(line => {
+                const parts = line.split(',');
+                if (parts.length >= 2) {
+                    const word = parts[0].trim();
+                    const meaning = parts[1].trim();
+                    
+                    words.push(word);
+                    meanings.push(meaning);
+                    wordMeaningPairs[word] = meaning;
+                }
+            });
+            
+            if (words.length > 0) {
+                alert(`成功导入 ${words.length} 个单词！`);
+                startBtn.disabled = false;
+            } else {
+                alert('未找到有效的单词数据，请确保格式为"单词,意思"');
+            }
+        }
+
+        // 事件监听器
+        startBtn.addEventListener('click', startGame);
+        
+        importBtn.addEventListener('click', () => {
+            importModal.style.display = 'flex';
+            wordInput.focus();
+        });
+        
+        confirmImportBtn.addEventListener('click', () => {
+            const content = wordInput.value.trim();
+            if (content) {
+                processTextContent(content);
+                importModal.style.display = 'none';
+                wordInput.value = '';
+            } else {
+                alert('请输入单词和释义！');
+            }
+        });
+        
+        cancelImportBtn.addEventListener('click', () => {
+            importModal.style.display = 'none';
+            wordInput.value = '';
+        });
+        
+        restartBtn.addEventListener('click', () => {
+            gameOverModal.style.display = 'none';
+            initGame();
+        });
+
+        // 计时选择变化时更新显示
+        timeSelect.addEventListener('change', function() {
+            timeLeft = parseInt(this.value);
+            timerDisplay.textContent = `时间: ${timeLeft}秒`;
+        });
+
+        // 初始化游戏
+        initGame();
+        // 初始禁用开始按钮
+        startBtn.disabled = true;
+        
+        // 加载语音列表（某些浏览器需要）
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = function() {
+                console.log('Voices loaded');
+            };
+            
+            // 某些浏览器需要先调用getVoices才能加载语音
+            speechSynthesis.getVoices();
+        }
+    </script>
+</body>
+</html>
